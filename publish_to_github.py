@@ -58,7 +58,14 @@ def github_api(path: str, method: str = "GET", data: dict = None, token: str = "
             return json.loads(resp.read())
     except urllib.error.HTTPError as e:
         error_body = json.loads(e.read())
-        raise RuntimeError(f"GitHub API error {e.code}: {error_body.get('message', e.reason)}")
+        detail = error_body.get("message", e.reason)
+        field_errors = error_body.get("errors")
+        if field_errors:
+            detail += " | " + "; ".join(
+                f"{fe.get('field', '?')}: {fe.get('message') or fe.get('code', '?')}"
+                for fe in field_errors
+            )
+        raise RuntimeError(f"GitHub API error {e.code}: {detail}")
 
 
 def run(cmd: list, cwd: str = None, env: dict = None) -> str:
