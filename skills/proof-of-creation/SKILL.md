@@ -1,20 +1,22 @@
 ---
 name: proof-of-creation
 description: >
-  Sets up baseline intellectual-property protection on every file Claude
-  writes or edits: a copyright header and a SHA-256 proof-of-creation hash,
-  logged locally. That is the only automatic behavior. Deeper analysis
+  Sets up intellectual-property protection — a copyright header and a
+  SHA-256 proof-of-creation hash, logged locally — on files the user asks
+  to protect. Nothing runs automatically just because Claude writes or
+  edits a file: base protection itself is on demand, triggered by an
+  explicit command (/proof-of-creation, /poc-hash) or an explicit request
+  to protect/hash/add copyright to a file or project. Deeper analysis
   (project context detection, license suggestion, jurisdiction-specific
-  legal alerts, registration guidance) never runs on its own — it only runs
-  after the user opts in via the one-time per-project prompt, or by invoking
-  /poc-license, /poc-countries, /poc-register, or /proof-of-creation
-  directly. Every piece of legal guidance is presented with its statutory
-  source (e.g. Art. L111-1 CPI, 17 U.S.C. §102) and a disclaimer — it is
-  decision support, not legal advice.
-  Trigger the base protection whenever Claude writes or edits a file in a
-  project context. Trigger the deeper analysis only on explicit opt-in, an
-  explicit command, or when the user directly asks about copyright,
-  licensing, Proof of Creation, or legal coverage.
+  legal alerts, registration guidance) is a further, separate opt-in on top
+  of that — it only runs after the user says yes to the one-time
+  per-project prompt, or invokes /poc-license, /poc-countries, or
+  /poc-register directly. Every piece of legal guidance is presented with
+  its statutory source (e.g. Art. L111-1 CPI, 17 U.S.C. §102) and a
+  disclaimer — it is decision support, not legal advice.
+  Trigger only on an explicit command or an explicit user request naming
+  copyright, license, IP, protection, hashing, or Proof of Creation —
+  never as a side effect of a file write.
 license: MIT
 compatibility:
   claude-code: ">=1.0"
@@ -33,52 +35,71 @@ allowed-tools:
 
 ## Purpose
 
-This skill runs in two layers, kept deliberately separate:
+This skill runs in two layers, both on demand, kept deliberately separate:
 
-1. **Base protection (automatic, every file)** — a copyright header and a
-   SHA-256 proof-of-creation hash, logged locally. Mechanical and
-   deterministic: no legal judgment, no interpretation, nothing to get
-   wrong.
-2. **Deeper analysis (opt-in only)** — context detection, license
-   suggestion, jurisdiction-specific alerts, registration guidance. This
-   layer never runs by itself. It only runs once the user has explicitly
-   agreed to it, and every claim it makes is tied back to its legal source
-   in [Legal reference by country](#legal-reference-by-country) — it is
-   decision support, not legal advice.
+1. **Base protection (on demand)** — a copyright header and a SHA-256
+   proof-of-creation hash, logged locally. Mechanical and deterministic: no
+   legal judgment, no interpretation, nothing to get wrong — but it still
+   only runs when asked for, never as a silent side effect of writing a
+   file.
+2. **Deeper analysis (a further, separate opt-in)** — context detection,
+   license suggestion, jurisdiction-specific alerts, registration guidance.
+   This layer never runs by itself. It only runs once the user has
+   explicitly agreed to it, and every claim it makes is tied back to its
+   legal source in [Legal reference by country](#legal-reference-by-country)
+   — it is decision support, not legal advice.
 
 ---
 
 ## Trigger conditions
 
-### Base protection — automatic
+### Base protection — on demand, not automatic
 
-- Claude writes a new file (any type: `.js`, `.py`, `.html`, `.md`, `.css`…)
-- Claude edits an existing file that lacks a copyright header
+Do **not** inject a header or compute a hash just because Claude writes or
+edits a file. Only do it when:
 
-### Deeper analysis — opt-in only
+- The user explicitly invokes `/proof-of-creation` or `/poc-hash [file]`, or
+- The user explicitly asks to protect, hash, timestamp, or add copyright to
+  a file or the current project.
+
+If neither has happened, write the file normally with no header and no log
+entry.
+
+### Deeper analysis — a further opt-in, on top of base protection
 
 Do **not** run context analysis, license suggestion, or legal alerts
-automatically. Only run them when:
+automatically, and do not run them just because base protection ran. Only
+run them when:
 
 - The user answered "yes" to the one-time per-project prompt (Step 3
   below), or
-- The user explicitly invokes `/poc-license`, `/poc-countries`,
-  `/poc-register`, or `/proof-of-creation`, or
+- The user explicitly invokes `/poc-license`, `/poc-countries`, or
+  `/poc-register`, or
 - The user directly asks something like "how do I protect this?", "is this
   mine?", "can someone copy this?", or names copyright / license / IP /
   dépôt / INPI / GDPR themselves.
 
 A `package.json`, `pyproject.toml`, or `composer.json` missing a `license`
-field is a signal to mention in the one-time prompt — it is not, by itself,
-a reason to analyze or recommend anything without asking first.
+field is, at most, something to mention if the user has already asked for
+base protection or deeper analysis on that project — it is never itself a
+reason to activate anything unasked.
 
 ---
 
-## Behavior on file creation
+## Behavior when invoked
+
+Everything below only runs once one of the [Base protection trigger
+conditions](#base-protection--on-demand-not-automatic) above has actually
+been met — a command or an explicit request. If the user asked to protect
+one specific file, apply Steps 1–2 to that file only. If they asked to
+protect "this project" or ran `/proof-of-creation`, apply them to the
+project's files as agreed with the user (e.g. everything since the last
+run, or everything matching a pattern they specify) — don't silently expand
+scope to files they didn't ask about.
 
 ### Step 1 — Inject copyright header
 
-Add at the top of every new file, adapted to the file type:
+Add at the top of the file, adapted to the file type:
 
 **For code files (.js, .ts, .py, .php, .java, .go, .rs…)**
 ```
@@ -110,7 +131,7 @@ the user opts into deeper analysis (Step 3).
 
 ### Step 2 — Compute SHA-256 hash
 
-After writing the file, compute its SHA-256 hash using:
+After protecting the file, compute its SHA-256 hash using:
 
 ```bash
 sha256sum [FILENAME]
@@ -132,15 +153,16 @@ proof.
 
 ### Step 3 — Offer deeper analysis (once per project, not per file)
 
-The first time Base protection runs in a given project — i.e.
-`.proof-of-creation/hashes.log` did not exist before this write — ask, once:
+The first time Base protection is invoked in a given project — i.e.
+`.proof-of-creation/hashes.log` did not exist before this run — ask, once:
 
 > "Base de protection posée pour ce projet (header + hash SHA-256). Voulez-
 > vous une analyse du contexte (licence, alertes commercial/GPL/GDPR, guide
 > par juridiction) ? [oui/non]"
 
-- **No, or no answer:** stop here. Base protection keeps running silently
-  on every later file in this project; do not ask again this session.
+- **No, or no answer:** stop here. Don't ask again this session. Base
+  protection still only runs the next time the user explicitly asks for it
+  or invokes a command — it does not become automatic.
 - **Yes:** run [Deeper analysis](#deeper-analysis-opt-in) once. After that,
   don't re-run it automatically — later requests go through
   `/poc-license`, `/poc-countries`, or `/poc-register` instead.
@@ -377,7 +399,7 @@ opted in, with a one-line reminder of how to opt in (`/poc-license` etc.).
 
 | Command | Action |
 |---------|--------|
-| `/proof-of-creation` | Run base protection check, and explicitly opt into Deeper analysis for the current project |
+| `/proof-of-creation` | Run base protection (header + hash) on the current project, and offer to opt into Deeper analysis |
 | `/poc-report` | Generate IP-REPORT.md |
 | `/poc-hash [file]` | Compute and log SHA-256 for a specific file |
 | `/poc-license` | Run the license-suggestion part of Deeper analysis and generate LICENSE |
@@ -394,11 +416,11 @@ This skill is designed to work in sequence with
 
 ### Recommended combined workflow
 
-When both skills are installed, suggest this sequence after any significant
-file creation:
+When both skills are installed, suggest this sequence — both steps are on
+demand, run in this order when the user is ready:
 
-1. **proof-of-creation runs first** (automatic) — copyright header + SHA-256 hash
-   logged at creation time, before any modification
+1. **proof-of-creation runs first** (`/proof-of-creation`, on demand) —
+   copyright header + SHA-256 hash logged, before any modification
 2. **watermarks-remover runs second** (on demand) — strips AI provenance
    marks (Unicode, statistical, C2PA/EXIF) for distribution or publication
 3. **ip-report confirms** — verifies final protection status
@@ -411,7 +433,7 @@ When the user invokes `/poc-workflow`, check if watermarks-remover is installed:
 ```
 🛡️ IP Workflow — Lubansu Alphonse
 
-Step 1 ✅ proof-of-creation: Copyright headers and SHA-256 hashes are logged.
+Step 1 ✅ proof-of-creation: base protection applied — copyright headers and SHA-256 hashes now logged for this project.
 
 Step 2: Strip AI provenance marks for distribution?
   Run: /remove-ai-marks
@@ -427,7 +449,7 @@ Step 4: Ready to distribute? Run /poc-register for formal deposit guidance.
 ```
 🛡️ IP Workflow — Lubansu Alphonse
 
-Step 1 ✅ proof-of-creation: Copyright headers and SHA-256 hashes are logged.
+Step 1 ✅ proof-of-creation: base protection applied — copyright headers and SHA-256 hashes now logged for this project.
 
 Step 2 (optional): To also strip AI provenance marks before distribution,
   install the complementary skill:

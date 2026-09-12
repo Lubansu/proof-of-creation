@@ -10,7 +10,7 @@
  |___|_|      \____|\__,_|\__,_|_|  \__,_|
 ```
 
-**Automatic intellectual property protection for everything Claude creates.**
+**On-demand intellectual property protection for what you ask Claude to protect.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-blueviolet)](https://claude.ai/code)
@@ -27,23 +27,24 @@
 
 ### What is proof-of-creation?
 
-`proof-of-creation` is a Claude Code skill that automatically protects the
-intellectual property of everything Claude creates or edits in your projects.
+`proof-of-creation` is a Claude Code skill that protects the intellectual
+property of files Claude creates or edits in your projects — on demand,
+never as a silent side effect of a file write.
 
-It runs in two layers, kept deliberately separate:
+It runs in two layers, both on demand, kept deliberately separate:
 
-**Automatic, on every file** — the mechanical base, no legal judgment involved:
+**Base protection** — triggered by `/proof-of-creation`, `/poc-hash`, or an explicit request to protect a file:
 - Injects a **copyright header** with your name, date, and license type
 - Computes a **SHA-256 hash** as local proof of creation
 
-**Opt-in only** — asked once per project, or triggered by `/poc-license`, `/poc-countries`, `/poc-register`:
+**Deeper analysis, a further opt-in** — asked once per project after base protection runs, or triggered by `/poc-license`, `/poc-countries`, `/poc-register`:
 - Analyzes the **legal context** of your project (commercial, open-source, cross-border)
 - Suggests a **license** for your situation, with its legal source cited
 - Alerts you when **formal registration** would be worth considering
 - Provides **country-specific guidance** for 15+ jurisdictions
 - Generates an **IP Report** summarizing your full protection status
 
-Nothing beyond the copyright header and the hash happens without you saying yes first.
+Nothing happens on any file until you ask for it — not even the header and hash.
 
 ### Why does this exist?
 
@@ -81,7 +82,7 @@ python3 install_skill.py --skill proof-of-creation --target cowork
 
 ### Usage
 
-The skill activates automatically on file creation. You can also use commands:
+The skill only activates when you ask — via a command, or an explicit request to protect a file or project:
 
 | Command | Action |
 |---------|--------|
@@ -140,7 +141,7 @@ Always consult a qualified attorney for projects with significant commercial val
 ```
 Create with Claude Code
         ↓
-proof-of-creation: copyright header + SHA-256 hash (automatic)
+proof-of-creation: copyright header + SHA-256 hash (on demand)
         ↓
 watermarks-remover: strip AI marks before distribution (on demand)
         ↓
@@ -158,23 +159,24 @@ See [WORKFLOW.md](WORKFLOW.md) for full documentation.
 
 ### Qu'est-ce que proof-of-creation ?
 
-`proof-of-creation` est un skill Claude Code qui protège automatiquement la
-propriété intellectuelle de tout ce que Claude crée ou modifie dans vos projets.
+`proof-of-creation` est un skill Claude Code qui protège la propriété
+intellectuelle des fichiers que Claude crée ou modifie dans vos projets —
+sur demande, jamais comme effet de bord silencieux d'une écriture de fichier.
 
-Il fonctionne en deux couches volontairement séparées :
+Il fonctionne en deux couches, toutes deux sur demande, volontairement séparées :
 
-**Automatique, à chaque fichier** — la base mécanique, sans jugement légal :
+**Base de protection** — déclenchée par `/proof-of-creation`, `/poc-hash`, ou une demande explicite de protéger un fichier :
 - Injecte un **header de copyright** avec votre nom, la date et le type de licence
 - Calcule un **hash SHA-256** comme preuve locale de création
 
-**Sur demande uniquement** — proposé une fois par projet, ou déclenché via `/poc-license`, `/poc-countries`, `/poc-register` :
+**Analyse approfondie, un opt-in supplémentaire** — proposée une fois par projet après la base de protection, ou déclenchée via `/poc-license`, `/poc-countries`, `/poc-register` :
 - Analyse le **contexte légal** de votre projet (commercial, open-source, transfrontalier)
 - Suggère une **licence** pour votre situation, avec sa base légale citée
 - Vous alerte quand un **dépôt formel** mériterait d'être envisagé
 - Fournit des **conseils spécifiques** pour plus de 15 juridictions
 - Génère un **rapport IP** résumant votre statut de protection complet
 
-Rien au-delà du header et du hash ne se déclenche sans votre accord explicite.
+Rien ne se déclenche sur aucun fichier tant que vous ne le demandez pas — pas même le header et le hash.
 
 ### Pourquoi ce projet existe-t-il ?
 
@@ -206,7 +208,7 @@ python3 install_skill.py --skill proof-of-creation --target claude-project \
 
 ### Utilisation
 
-Le skill s'active automatiquement à la création de fichiers. Commandes disponibles :
+Le skill ne s'active que sur demande — via une commande, ou une requête explicite pour protéger un fichier ou un projet :
 
 | Commande | Action |
 |----------|--------|
