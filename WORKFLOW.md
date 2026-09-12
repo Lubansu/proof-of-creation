@@ -25,7 +25,7 @@ Neither skill alone covers both needs. Together, they form a complete workflow.
 | Skill | Repository | Stars | What it does |
 |-------|-----------|-------|-------------|
 | **watermarks-remover** | [guillaumemeyer/watermarks-remover](https://github.com/guillaumemeyer/watermarks-remover) | ⭐ 21k+ | Strips AI provenance marks (Unicode, statistical, C2PA/EXIF metadata) from text and files |
-| **proof-of-creation** | [lubansualphonse/proof-of-creation](https://github.com/lubansualphonse/proof-of-creation) | This project | Protects your IP with copyright headers, SHA-256 hashes, and multi-jurisdiction legal guidance |
+| **proof-of-creation** | [Lubansu/proof-of-creation](https://github.com/Lubansu/proof-of-creation) | This project | Protects your IP with copyright headers, SHA-256 hashes, and multi-jurisdiction legal guidance |
 
 ---
 
@@ -72,7 +72,7 @@ cd watermarks-remover && make serve
 
 ```bash
 # Via Claude Code plugin marketplace
-/plugin marketplace add lubansualphonse/proof-of-creation
+/plugin marketplace add Lubansu/proof-of-creation
 /plugin install proof-of-creation@proof-of-creation
 ```
 

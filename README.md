@@ -54,7 +54,7 @@ legally-aware creative act.
 
 **Via Claude Code plugin marketplace (fastest):**
 ```
-/plugin marketplace add lubansualphonse/proof-of-creation
+/plugin marketplace add Lubansu/proof-of-creation
 /plugin install proof-of-creation@proof-of-creation
 ```
 
@@ -180,7 +180,7 @@ créatif documenté et juridiquement conscient.
 
 **Via le marketplace de plugins Claude Code :**
 ```
-/plugin marketplace add [VOTRE_USERNAME_GITHUB]/proof-of-creation
+/plugin marketplace add Lubansu/proof-of-creation
 /plugin install proof-of-creation@proof-of-creation
 ```
 
