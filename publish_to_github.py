@@ -70,7 +70,12 @@ def github_api(path: str, method: str = "GET", data: dict = None, token: str = "
 
 def run(cmd: list, cwd: str = None, env: dict = None) -> str:
     """Run a shell command and return output."""
-    result = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd, env=env)
+    run_env = dict(env) if env is not None else dict(os.environ)
+    # Force English git output so substring checks (e.g. "nothing to commit")
+    # work regardless of the user's terminal locale.
+    run_env["LC_ALL"] = "C"
+    run_env["LANG"] = "C"
+    result = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd, env=run_env)
     if result.returncode != 0:
         raise RuntimeError(f"Command failed: {' '.join(cmd)}\n{result.stderr}")
     return result.stdout.strip()
