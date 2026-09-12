@@ -1,20 +1,26 @@
 ---
 name: proof-of-creation
 description: >
-  Automatically protects intellectual property in every file Claude creates or
-  edits. Injects copyright headers, generates SHA-256 proof-of-creation hashes,
-  recommends the right license for the project type, alerts when commercial or
-  cross-border legal context requires stronger protection, and prompts the user
-  to register with the appropriate national authority (INPI, USPTO, UKIPO, etc.).
-  Supports multi-country legal analysis (EU, France, USA, UK, Canada, and more).
-  Trigger whenever Claude writes, edits, or creates any file in a project context,
-  or when the user asks about copyright, licensing, Proof of Creation, or legal coverage.
+  Sets up baseline intellectual-property protection on every file Claude
+  writes or edits: a copyright header and a SHA-256 proof-of-creation hash,
+  logged locally. That is the only automatic behavior. Deeper analysis
+  (project context detection, license suggestion, jurisdiction-specific
+  legal alerts, registration guidance) never runs on its own — it only runs
+  after the user opts in via the one-time per-project prompt, or by invoking
+  /poc-license, /poc-countries, /poc-register, or /proof-of-creation
+  directly. Every piece of legal guidance is presented with its statutory
+  source (e.g. Art. L111-1 CPI, 17 U.S.C. §102) and a disclaimer — it is
+  decision support, not legal advice.
+  Trigger the base protection whenever Claude writes or edits a file in a
+  project context. Trigger the deeper analysis only on explicit opt-in, an
+  explicit command, or when the user directly asks about copyright,
+  licensing, Proof of Creation, or legal coverage.
 license: MIT
 compatibility:
   claude-code: ">=1.0"
 metadata:
   author: "Lubansu Alphonse"
-  version: "1.0.0"
+  version: "1.1.0"
   tags: ["copyright", "ip", "license", "legal", "protection", "watermark"]
 allowed-tools:
   - Read
@@ -27,24 +33,44 @@ allowed-tools:
 
 ## Purpose
 
-This skill activates automatically whenever Claude creates or edits files in a
-project. It ensures every creation carries proper copyright markers, a SHA-256
-proof-of-existence hash, and a context-aware legal recommendation suited to the
-user's country and project type.
+This skill runs in two layers, kept deliberately separate:
+
+1. **Base protection (automatic, every file)** — a copyright header and a
+   SHA-256 proof-of-creation hash, logged locally. Mechanical and
+   deterministic: no legal judgment, no interpretation, nothing to get
+   wrong.
+2. **Deeper analysis (opt-in only)** — context detection, license
+   suggestion, jurisdiction-specific alerts, registration guidance. This
+   layer never runs by itself. It only runs once the user has explicitly
+   agreed to it, and every claim it makes is tied back to its legal source
+   in [Legal reference by country](#legal-reference-by-country) — it is
+   decision support, not legal advice.
 
 ---
 
 ## Trigger conditions
 
-Activate this skill when:
+### Base protection — automatic
 
 - Claude writes a new file (any type: `.js`, `.py`, `.html`, `.md`, `.css`…)
 - Claude edits an existing file that lacks a copyright header
-- The user mentions: copyright, license, IP, propriété intellectuelle, protection,
-  dépôt, INPI, watermark, ownership, plagiarism
-- The user asks: "how do I protect this?", "is this mine?", "can someone copy this?"
-- The project contains a `package.json`, `pyproject.toml`, or `composer.json`
-  without a `license` field
+
+### Deeper analysis — opt-in only
+
+Do **not** run context analysis, license suggestion, or legal alerts
+automatically. Only run them when:
+
+- The user answered "yes" to the one-time per-project prompt (Step 3
+  below), or
+- The user explicitly invokes `/poc-license`, `/poc-countries`,
+  `/poc-register`, or `/proof-of-creation`, or
+- The user directly asks something like "how do I protect this?", "is this
+  mine?", "can someone copy this?", or names copyright / license / IP /
+  dépôt / INPI / GDPR themselves.
+
+A `package.json`, `pyproject.toml`, or `composer.json` missing a `license`
+field is a signal to mention in the one-time prompt — it is not, by itself,
+a reason to analyze or recommend anything without asking first.
 
 ---
 
@@ -61,8 +87,8 @@ Add at the top of every new file, adapted to the file type:
  * Created: [ISO DATE]
  * File: [FILENAME]
  * SHA-256: [HASH — filled after write]
- * License: [LICENSE TYPE]
- * Protected under: [JURISDICTION]
+ * License: [LICENSE TYPE, or "unset" if the user hasn't chosen one yet]
+ * Protected under: [JURISDICTION, or "unset" if not yet discussed]
  */
 ```
 
@@ -76,7 +102,9 @@ Add at the top of every new file, adapted to the file type:
 <!-- proof-of-creation: © [YEAR] Lubansu Alphonse | [ISO DATE] | [LICENSE] -->
 ```
 
-If the user has not provided their name, ask once and store it for the session.
+If the user has not provided their name, ask once and store it for the
+session. Do not block on license/jurisdiction — leave them as "unset" until
+the user opts into deeper analysis (Step 3).
 
 ---
 
@@ -96,12 +124,35 @@ Append the result to `.proof-of-creation/hashes.log` in this format:
 [ISO DATETIME] | [FILENAME] | [SHA256] | [LICENSE] | [JURISDICTION]
 ```
 
-This file is the local proof-of-creation log. Advise the user to commit it to
-Git immediately — the commit timestamp becomes an additional layer of proof.
+This file is the local proof-of-creation log. Advise the user to commit it
+to Git immediately — the commit timestamp becomes an additional layer of
+proof.
 
 ---
 
-### Step 3 — Context analysis
+### Step 3 — Offer deeper analysis (once per project, not per file)
+
+The first time Base protection runs in a given project — i.e.
+`.proof-of-creation/hashes.log` did not exist before this write — ask, once:
+
+> "Base de protection posée pour ce projet (header + hash SHA-256). Voulez-
+> vous une analyse du contexte (licence, alertes commercial/GPL/GDPR, guide
+> par juridiction) ? [oui/non]"
+
+- **No, or no answer:** stop here. Base protection keeps running silently
+  on every later file in this project; do not ask again this session.
+- **Yes:** run [Deeper analysis](#deeper-analysis-opt-in) once. After that,
+  don't re-run it automatically — later requests go through
+  `/poc-license`, `/poc-countries`, or `/poc-register` instead.
+
+---
+
+## Deeper analysis (opt-in)
+
+Everything in this section only runs per the [Trigger conditions](#trigger-conditions-1)
+above — never as a side effect of writing a file.
+
+### Context analysis
 
 Ask or infer from context:
 
@@ -113,34 +164,42 @@ Ask or infer from context:
 | Contains personal data (GDPR)? | Database models, user tables, auth code |
 | Dependencies with restrictive licenses? | `node_modules`, `requirements.txt`, `Cargo.toml` |
 
----
+State inferences as inferences ("this looks commercial because...") and let
+the user correct them — don't treat a guess as a fact for the rest of the
+analysis.
 
-### Step 4 — License recommendation
+### License suggestion (referenced, not prescriptive)
 
-Based on context, recommend:
+Present options with why teams pick them and where the underlying legal
+protection comes from — never as a bare imperative like "you should use
+MIT":
 
-| Project type | Recommended license | Reason |
-|-------------|-------------------|--------|
-| Commercial SaaS | Proprietary / All Rights Reserved | Full control |
-| Open-source, permissive | MIT | Maximum adoption |
-| Open-source, protective | AGPL-3.0 | Forces derivatives open |
-| Library / SDK | Apache-2.0 | Patent protection included |
-| Creative content | CC BY-NC-ND 4.0 | No commercial reuse |
-| Internal tool | Proprietary | No external sharing |
+| Project type | Common choice | Why teams pick it | Legal basis for the underlying protection |
+|-------------|-------------------|--------|--------|
+| Commercial SaaS | Proprietary / All Rights Reserved | Keeps full control | Automatic on creation — see the user's country in [Legal reference by country](#legal-reference-by-country) |
+| Open-source, permissive | MIT | Maximum adoption, no copyleft | OSI-approved license text |
+| Open-source, protective | AGPL-3.0 | Forces derivatives to stay open | OSI-approved, network copyleft |
+| Library / SDK | Apache-2.0 | Includes an explicit patent grant | OSI-approved license text |
+| Creative content | CC BY-NC-ND 4.0 | Blocks commercial reuse | Creative Commons license text |
+| Internal tool | Proprietary | No external sharing | N/A |
 
-Generate the appropriate `LICENSE` file if absent.
+Always say plainly: *"This is a common pattern for this project type, not a
+recommendation tailored to your situation — verify with an attorney before
+committing to a license where the commercial stakes are real."* Generate the
+`LICENSE` file only after the user confirms which option they actually want.
 
----
+### Legal alert (contextual, source-cited)
 
-### Step 5 — Legal alert (contextual)
+When surfacing an alert, name the legal basis instead of asserting a flat
+conclusion:
 
-Trigger a legal alert when:
-
-- **Commercial project detected** → recommend formal registration
-- **Cross-border use detected** → explain jurisdiction differences
-- **GPL dependency found** → warn about license contamination
-- **Personal data detected** → GDPR reminder
-- **AI-generated content detected** → EU AI Act watermark notice
+| Situation | What to say |
+|-----------|-------------|
+| Commercial project, no registration | "Your protection exists automatically from creation (see your country's entry in Legal reference). Formal registration isn't required for that protection to exist, but several jurisdictions tie it to what you can claim in court — see the specific entry before deciding." |
+| GPL dependency in proprietary project | "A GPL-licensed dependency was detected. Depending on the GPL version and how you link/distribute, this can require releasing your own code under GPL too — read the dependency's actual license file, this is not a substitute for that." |
+| Personal data in code | "EU user data handling was detected. GDPR may require a documented lawful basis and, depending on scale, a DPO — see the GDPR note under your country's entry." |
+| AI-generated content (post Aug 2026) | "This model embeds an EU AI Act watermark on generated content since Aug 2, 2026. It's a provenance mark, not a copyright claim against you — keep a record of your own creative direction (prompts, edits, decisions) regardless." |
+| Cross-border distribution | "Distribution across multiple jurisdictions was detected — protection terms differ by country (see Legal reference by country); when in doubt, the strictest applicable jurisdiction is the safer assumption." |
 
 ---
 
@@ -251,10 +310,12 @@ registration required.
 
 ---
 
-## Blockchain timestamping (optional, recommended)
+## Blockchain timestamping (optional, on request)
 
 For maximum cross-border proof, optionally timestamp the SHA-256 hash on a
-public blockchain. Services that provide legally-recognized timestamps:
+public blockchain. Only bring this up inside Deeper analysis, or when the
+user asks directly — never automatically. Services that provide
+legally-recognized timestamps:
 
 | Service | Cost | Jurisdiction recognized | Notes |
 |---------|------|------------------------|-------|
@@ -263,10 +324,10 @@ public blockchain. Services that provide legally-recognized timestamps:
 | **ANSA Protect** | ~€5/deposit | France, EU | French press agency backing |
 | **Notarius** | Varies | Canada, US | Notarial weight |
 
-Recommend blockchain timestamping when:
-- The project is commercial
-- It will be distributed internationally
-- The user is a freelancer or small studio without legal department
+Worth mentioning when, during Deeper analysis, the project turns out to be:
+- Commercial
+- Distributed internationally
+- Run by a freelancer or small studio without a legal department
 
 ---
 
@@ -286,11 +347,12 @@ Project: [NAME]
 | ... | ... | ... | ... |
 
 ## Legal status
-- Jurisdiction: [DETECTED]
+- Jurisdiction: [DETECTED, or "not analyzed — deeper analysis was declined"]
 - Automatic protection: Active since [FIRST COMMIT DATE]
-- Formal registration: [DONE / RECOMMENDED / NOT DONE]
+- Formal registration: [DONE / RECOMMENDED / NOT DONE / NOT ANALYZED]
 
 ## Recommendations
+(Only include this section if Deeper analysis has run for this project.)
 - [ ] File Enveloppe Soleau (INPI) — €15
 - [ ] Register at Copyright.gov — $65
 - [ ] Blockchain timestamp via Bernstein.io
@@ -298,23 +360,16 @@ Project: [NAME]
 - [ ] Add NOTICE file with third-party attributions
 
 ## Dependency license audit
+(Only include this section if Deeper analysis has run for this project.)
 | Package | License | Risk |
 |---------|---------|------|
 | ... | ... | ... |
 ```
 
----
-
-## Alerts reference
-
-| Situation | Alert level | Message |
-|-----------|-------------|---------|
-| Commercial project, no registration | ⚠️ Warning | "This project appears commercial. Consider formal registration." |
-| GPL dependency in proprietary project | 🔴 Critical | "GPL license detected — may require your code to be open-sourced." |
-| Personal data in code | ⚠️ Warning | "User data detected. GDPR compliance review recommended." |
-| AI-generated content (post Aug 2026) | ℹ️ Info | "EU AI Act watermark applies. Keep your creative direction documented." |
-| Cross-border distribution | ℹ️ Info | "Multi-jurisdiction use detected. US registration recommended." |
-| Missing LICENSE file | ⚠️ Warning | "No LICENSE file found. Default is 'All Rights Reserved'." |
+If Deeper analysis was never run for this project, the report should still
+be useful on its own — files, hashes, dates — and should say plainly that
+the legal/recommendation sections were skipped because the user hadn't
+opted in, with a one-line reminder of how to opt in (`/poc-license` etc.).
 
 ---
 
@@ -322,11 +377,11 @@ Project: [NAME]
 
 | Command | Action |
 |---------|--------|
-| `/proof-of-creation` | Run full protection check on current project |
+| `/proof-of-creation` | Run base protection check, and explicitly opt into Deeper analysis for the current project |
 | `/poc-report` | Generate IP-REPORT.md |
 | `/poc-hash [file]` | Compute and log SHA-256 for a specific file |
-| `/poc-license` | Recommend and generate appropriate LICENSE file |
-| `/poc-countries` | Show legal requirements for specified countries |
+| `/poc-license` | Run the license-suggestion part of Deeper analysis and generate LICENSE |
+| `/poc-countries` | Show legal requirements for specified countries (no opt-in needed — pure reference lookup) |
 | `/poc-register` | Step-by-step registration guide for detected jurisdiction |
 | `/poc-workflow` | Guide through combined watermarks-remover + proof-of-creation workflow |
 

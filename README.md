@@ -30,15 +30,20 @@
 `proof-of-creation` is a Claude Code skill that automatically protects the
 intellectual property of everything Claude creates or edits in your projects.
 
-Every time Claude writes a file, this skill:
+It runs in two layers, kept deliberately separate:
 
+**Automatic, on every file** — the mechanical base, no legal judgment involved:
 - Injects a **copyright header** with your name, date, and license type
 - Computes a **SHA-256 hash** as local proof of creation
+
+**Opt-in only** — asked once per project, or triggered by `/poc-license`, `/poc-countries`, `/poc-register`:
 - Analyzes the **legal context** of your project (commercial, open-source, cross-border)
-- Recommends the **right license** for your situation
-- Alerts you when **formal registration** would be wise
+- Suggests a **license** for your situation, with its legal source cited
+- Alerts you when **formal registration** would be worth considering
 - Provides **country-specific guidance** for 15+ jurisdictions
 - Generates an **IP Report** summarizing your full protection status
+
+Nothing beyond the copyright header and the hash happens without you saying yes first.
 
 ### Why does this exist?
 
@@ -156,15 +161,20 @@ See [WORKFLOW.md](WORKFLOW.md) for full documentation.
 `proof-of-creation` est un skill Claude Code qui protège automatiquement la
 propriété intellectuelle de tout ce que Claude crée ou modifie dans vos projets.
 
-À chaque fois que Claude écrit un fichier, ce skill :
+Il fonctionne en deux couches volontairement séparées :
 
+**Automatique, à chaque fichier** — la base mécanique, sans jugement légal :
 - Injecte un **header de copyright** avec votre nom, la date et le type de licence
 - Calcule un **hash SHA-256** comme preuve locale de création
+
+**Sur demande uniquement** — proposé une fois par projet, ou déclenché via `/poc-license`, `/poc-countries`, `/poc-register` :
 - Analyse le **contexte légal** de votre projet (commercial, open-source, transfrontalier)
-- Recommande la **bonne licence** pour votre situation
-- Vous alerte quand un **dépôt formel** serait judicieux
+- Suggère une **licence** pour votre situation, avec sa base légale citée
+- Vous alerte quand un **dépôt formel** mériterait d'être envisagé
 - Fournit des **conseils spécifiques** pour plus de 15 juridictions
 - Génère un **rapport IP** résumant votre statut de protection complet
+
+Rien au-delà du header et du hash ne se déclenche sans votre accord explicite.
 
 ### Pourquoi ce projet existe-t-il ?
 
